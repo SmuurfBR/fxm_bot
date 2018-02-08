@@ -1,0 +1,35 @@
+{
+        "author" : ["Autor: MarcVFX", "https://i.imgur.com/gqU5pl8.png"],
+        "botImg" : "https://i.imgur.com/ZK4RNka.png",
+        "version" : "0.3.2 Estável",
+        "developed" : "Desenvolvida utilizando a biblioteca do `Discord.js v11.3.0` com o `Node.js v8.9.4` e escrito no `Visual Studio Code v1.19.1`",
+        "compiled" : "Versão compilada em: 29/01/18",
+        "packages" : "Atualmente, nenhum pacote `nmp` externo foi utilizado.",
+        "database" : "O banco de dados utiliza um sistema simples, baseado em `JavaScript Oriented Objects (JSON)` e `FS`",
+        "prefix" : ".",
+        "invite" : "https://discord.gg/FVYpRNv",
+        "token" : "MzgxNDY4MjIzNTE5ODUwNDk2.DUrKJQ.OClWwmhUdj1MumjkInbvJdjIX-0",
+        
+        "help" : {
+                "commands" : ["8ball", "invite","viewwarn", "changelog", "info", "helpadm"],
+                "8ball" : {"info" : "Responde perguntas de sim e não de forma engraçada", "moreInfo" : " [pergunta]` Apenas faça uma pergunta, o quão complexo isso pode ser?"},
+                "invite" : {"info" : "Cria um link de invite para o server", "moreInfo" : "` Você tem algum défict intelectual?"},
+                "viewwarn" : {"info" : "Visualiza os seus avisos", "moreInfo" : "` Caso você tenha sido avisado por alguém da staff, você poder ver usando esse comando"},
+                "changelog" : {"info" : "As últimas 5 versões lançadas do bot", "moreInfo": "` Mostra uma curta descrição sobre cada uma das 5 últimas versões do bot,"},
+                "info" : {"info" : "Mostra informações de desenvolvimento do bot", "moreInfo" : "` Informações como versão, desenvolvedor e bibliotecas estão disponíveis aqui"},
+                "helpadm" : {"info" : "Comandos da staff", "moreInfo" : "` Comandos que só podem ser utilizados pela staff"}
+        },
+        "helpAdm" : {
+                "commands" : ["warn", "viewwarn", "removewarn", "mute","unmute", "kick", "ban", "unban", "unbanid","changelog"],
+                "warn" : {"info" : "Avisa um membro", "moreInfo" : " [@membro] [motivo]` Cria um log de aviso para o membro, caso um já tenha sido criado, o bot irá pedir permissão para sobrescrever"},
+                "removewarn" : {"info": "Remove o aviso de um membro", "moreInfo": " [@membro] [motivo]` O comando irá remover um aviso já existente de um membro"},
+                "viewwarn" : {"info": "Visualiza os avisos de um membro", "moreInfo": " [@membro]` Irá gerar um log idêntico ao de quando o aviso foi dado"},
+                "mute" : {"info" : "Remove o direito de mandar mensagens ou falar de um membro", "moreInfo" : " [membro] [tempo] [motivo]` O tempo deve ser dado em minutos"},
+                "unmute" : {"info" : "Permite o membro mandar mensagens ou falar novamente", "moreInfo": " [@membro] [motivo]` Ambos os argumentos são obrigatórios"},
+                "kick" : {"info" : "Expulsa um membro do server", "moreInfo" : " [@membro] [motivo]` Ambos argumentos são obrigatórios, o membro kickado receberá um convite de volta para o server e um comando para fazer um apelo, caso ele ache que o kick foi abusivo"},
+                "ban" : {"info" : "Bane um membro do server por um determinado tempo", "moreInfo" : " [@membro] [motivo]` Ambos argumentos são obrigatórios, o membro banido receberá um comando para fazer um apelo, caso ele ache que o bam foi abusivo "},
+                "unban" : {"info" : "Remove o banimento de um membro", "moreInfo" : " [membro]` O argumento pode ser obtido no registro de auditoria do banimento ou no log criado pelo bot"},
+                "unbanid" : {"info" : "Remove o banimento de um membro através do id dele", "moreInfo" : " [id]` O argumento pode ser obtido no registro de autoria do banimento ou no log criado pelo bot"},
+                "changelog" : {"info": "Adiciona uma nova versão ao changelog do bot", "moreInfo" : " [versão] [descrição curta]:[descrição detalhada]` Todos os argumentos são obrigatórios, a versão será adicionada ao topo da lista do changelog."}
+        }
+}
