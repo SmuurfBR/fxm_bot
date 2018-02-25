@@ -6,7 +6,8 @@ O bot foi criado com o intuito de facilitar a vida de nossos administradores e g
 Desenvolvido utilizando, principalmente, o pacote Discord.js, para poder trabalhar com a API do Discord, além de outros pacotes.
 
 ## Comandos
-Para ter uma lista completa dos comandos, você pode utilizar o prefixo+help (ex: .help), o comando estará sempre visível no usuário do bot 
+Para ter uma lista completa dos comandos, você pode utilizar o prefixo+help (ex: .help), o comando estará sempre visível no usuário do bot
+
 ![Print](https://i.imgur.com/QBYNeEJ.png)
 ![Print](https://i.imgur.com/tyuHPut.png)
 
