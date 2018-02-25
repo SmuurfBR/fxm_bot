@@ -7,8 +7,8 @@ Desenvolvido utilizando, principalmente, o pacote Discord.js, para poder trabalh
 
 ## Comandos
 Para ter uma lista completa dos comandos, você pode utilizar o prefixo+help (ex: .help), o comando estará sempre visível no usuário do bot 
-![Print](http://prntscr.com/ijem87)
-![Print](http://prntscr.com/ijem1j)
+![Print](https://i.imgur.com/QBYNeEJ.png)
+![Print](https://i.imgur.com/tyuHPut.png)
 
 ## Colaboração
 Sinta-se livre para criar uma nova branch do bot, ela será estudada e, talvez, adicionada à main, para que se torne parte do bot. Otimizações do código, correções de bugs e entre outros serão completamente abraçadas.
