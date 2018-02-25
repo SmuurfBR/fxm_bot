@@ -7,7 +7,6 @@ const google = require("google")
 const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
 
-const token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
