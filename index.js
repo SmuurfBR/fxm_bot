@@ -1,19 +1,36 @@
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const fs = require("fs");
+const request = require("request")
+const schedule = require("node-schedule")
+const google = require("google")
+const shortener = require("tinyurl")
+const snekfetch = require("snekfetch")
 
+const token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
 var warneds = JSON.parse(fs.readFileSync("./Database/avisados.json", "utf8"))
 var changelog = JSON.parse(fs.readFileSync("./Database/changelog.json", "utf8"))
+var profiles = JSON.parse(fs.readFileSync("./Database/profiles.json", "utf8"))
+
+var appealsBans = []
+var appealsKicks = []
 
 var muted = new Set();
-var warnResponse = new Set();
+var appealList = new Set();
+
+
+var warnResponse = ""
+var messageContainer
 
 let whoWarned
 let toWarn
 let reason
+
+var messageIds = []
+var ytApi = "AIzaSyDgGHSUWhmmDcNuLK_DRwY-HgCUaG6VCOU"
 
 const hexBranco = "#ffffff"
 const hexPreto = "#000000"
@@ -30,11 +47,8 @@ var d1f = "https://youtu.be/gW8FbixbI-s"
 
 // ==================================================================================================
 
-function configSave(){
-    fs.writeFile("./config.json", JSON.stringify(config), (err) => {
-        if (err) console.error(err)
-      });
-}
+
+
 
 function bannedSave(){
     fs.writeFile("./Database/banidos.json", JSON.stringify(banned), (err) => {
@@ -54,6 +68,11 @@ function changelogSave(){
     });
 }
 
+function profileSave(){
+    fs.writeFile("./Database/profiles.json", JSON.stringify(profiles), (err) => {
+        if (err) console.error(err)
+    });
+}
 function checkAdmin(message){
     if (message.member.roles.some(r => ["Dono", "Admin"].includes(r.name))){
         return true
@@ -118,7 +137,7 @@ function warn(message){
         .setColor(hexAmarelo)
         .setTimestamp()
         .setDescription(whoWarned + " o avisou por: " + reason)
-        .addField("Para remover o aviso, utilize " + config.prefix + "removewarn", toWarn.id)
+        .addField("Para remover o aviso, utilize " + config.prefix + "removewarn","@" + toWarn.user.username)
         .setThumbnail(toWarn.user.avatarURL)
     warneds[toWarn.id] = {
         whoWarned: whoWarned,
@@ -129,11 +148,97 @@ function warn(message){
     let toSend = client.guilds.find("name", "FXM").channels.find("name", "controle")
     toSend.send({embed: warnEmbed})
     message.channel.send({embed: warnEmbed})
+
+     
+}
+
+function createProfile(url, id, message){
+    request({
+        url: url,
+        json: true
+    }, function(error,response,body){
+        if (!error && response.statusCode === 200) {
+            function descLess(desc){
+                if(desc.length > 200){
+                    let newDesc = desc.slice(0,200) +"..."
+                    return newDesc
+                }
+                else return desc
+            }
+            let items = body.items[0]
+            let embed = new Discord.RichEmbed()
+                .setAuthor("Perfil do Youtube", "https://goo.gl/pnp1Dn")
+                .setColor(hexVermelho)
+                .setThumbnail(items.snippet.thumbnails.default.url)
+                .setTitle(items.snippet.title)
+                .setDescription(items.statistics.subscriberCount + " inscritos, " + items.statistics.videoCount + " vídeos publicados e " + items.statistics.viewCount + " visualizações")
+                .addField("Descrição", descLess(items.snippet.description))
+                .addField("Link do canal", "https://www.youtube.com/channel/" + id)
+                .setFooter("Canal criado em: ")
+                .setTimestamp(items.snippet.publishedAt)
+            profiles[message.author.id] = {
+                channelId: id,
+                embed: embed
+            }
+            profileSave()
+            message.channel.send("Perfil criado com sucesso!")
+            message.channel.send({embed})
+        }
+    })
+
+}
+function updateProfile(id){
+    console.log("Updating profile: " + id)
+    let url = "https://www.googleapis.com/youtube/v3/channels?part=snippet%2C%20contentDetails%2C%20brandingSettings%2C%20invideoPromotion%2C%20statistics%2C%20topicDetails&id=" + profiles[id].channelId + "&key=" + ytApi
+    console.log(id)
+    request({
+        url: url,
+        json: true
+    }, function(error,response,body){
+        if (!error && response.statusCode === 200) {
+            function descLess(desc){
+                if(desc.length > 200){
+                    let newDesc = desc.slice(0,200) +"..."
+                    return newDesc
+                }
+                else return desc
+            }
+            let items = body.items[0]
+            let embed = new Discord.RichEmbed()
+                .setAuthor("Perfil do Youtube", "https://goo.gl/pnp1Dn")
+                .setColor(hexVermelho)
+                .setThumbnail(items.snippet.thumbnails.default.url)
+                .setTitle(items.snippet.title)
+                .setDescription(items.statistics.subscriberCount + " inscritos, " + items.statistics.videoCount + " vídeos publicados e " + items.statistics.viewCount + " visualizações")
+                .addField("Descrição", descLess(items.snippet.description))
+                .addField("Link do canal", "https://www.youtube.com/channel/" + profiles[id].channelId)
+                .setFooter("Canal criado em: ")
+                .setTimestamp(items.snippet.publishedAt)
+            profiles[id].embed = embed
+            profileSave()
+            console.log("Profile saved")
+        }
+    })
 }
 // ==================================================================================================
 
 // ==================================================================================================
-
+client.on("messageReactionAdd", (reaction, user) =>{
+    if (user.id == warnResponse){
+        if (reaction.emoji.name == "👍"){
+            warn(messageContainer)
+            warnResponse = ""
+            messageContainer.channel.bulkDelete(messageIds)
+            messageContainer.channel.send("Aviso criado")
+        }
+        if (reaction.emoji.name == "👎"){
+            warnResponse = ""
+            messageContainer.channel.bulkDelete(messageIds)
+            messageContainer.channel.send("Aviso cancelado")
+        }
+        else return;
+    }
+})
 client.on("ready", () =>{
     client.user.setPresence({game:{name: config.prefix + "help", type: 0}});
     console.log(" ")
@@ -144,27 +249,15 @@ client.on("ready", () =>{
     console.log(" ")
     console.log(" ")
 });
-client.on("message", (message) =>{
-    var args = message.content.toLowerCase().split(" ");
+client.on("message", (message) =>{  
+    
+    
+    var args = message.content.split(" ");
 // Sem prefixo abaixo
     if(muted.has(message.author.id)){
         message.delete()
         return;
 
-    }
-    if(warnResponse.has(message.author.id)){
-        if (message.content.includes("sim")){
-            warn(message)
-            warnResponse.delete(message.author.id)
-        }
-        else if (message.content.includes("não")){
-            warnResponse.delete(message.author.id)
-            message.channel.send("Cancelado com sucesso e sem falhas, óbvio")
-        }
-        else {
-            message.channel.send(preMessages("", ""))
-        }
-        return;
     }
     if(!message.content.startsWith(config.prefix) || message.author.bot) return;
     
@@ -172,15 +265,183 @@ client.on("message", (message) =>{
     var command = args[0]
     command = command.slice(config.prefix.length);
     args.shift()
-    
 
+    
     switch (command){
 // Com prefixo abaixo
-
-
             // ======================================================================================
             // COMANDOS
             // ======================================================================================
+        case "chat":
+            var entry
+            if (args[0] == undefined) entry = "hasnfae"
+            else entry = args.join("%20")
+            var url = "https://api.dialogflow.com/v1/query?v=20170712&query=" + entry + "&lang=pt-br&sessionId=f5afe3ab-6def-4d78-b412-39236534fe7c&timezone=America/Sao_Paulo"
+            snekfetch.get(
+                url , { headers: { 'Authorization': 'Bearer 53f6b34b22634536afbc2d01c3cc6e44' } })
+                .then(r => {
+                    message.channel.send(r.body.result.fulfillment.speech)
+            })             
+
+            
+        break;
+        case "short":
+        case "shortener":
+        case "shorter":
+            if(args[0] == undefined){
+                message.channel.send("Você precisa especificar uma URL a ser encurtada")
+                return;
+            }
+            shortener.shorten(args[0], res =>{
+                request(res, (err,response,body)=>{
+                    if (!err) message.channel.send("URL encurtada: " + res)
+                    else message.channel.send("Não foi possível encurtar a URL")
+                })
+               
+                
+            })
+        break;
+        case "google":
+        case "gl":
+        case "search":
+        case "s":
+        case "g":
+            var maxResults
+            var pesquisa
+            if (args[0] == undefined){
+                message.channel.send("Você precisa especificar um termo de busca")
+                return;
+            }
+            else if (Number(args[0] && Number(args[0]) < 10)){
+                maxResults = args[0]
+                pesquisa = args.slice(1).join(" ")
+            }
+            else {
+                maxResults = 1
+                pesquisa = args.join(" ")
+            }
+            google(pesquisa, (err,res) =>{
+                if (err) console.log(err)
+                if (maxResults == 1){
+                    var title = res.links[0].title
+                    var href = res.links[0].href
+                    var searchDescription = res.links[0].description
+                    let embed = new Discord.RichEmbed()
+                        .setAuthor("Pesquisa do google", "https://goo.gl/UYNh6k")
+                        .setTitle(title)
+                        .setDescription(searchDescription)
+                        .setURL(href)
+                        .setFooter("Você pode adquirir mais resultados colocando um número antes do termo pesquisado")
+                        .setColor(hexVerde)
+                        message.channel.send({embed})
+                }
+                else {
+                    let embed = new Discord.RichEmbed()
+                        .setAuthor("Pesquisa do google", "https://goo.gl/UYNh6k")
+                        .setTitle("Termo pesquisado: " + pesquisa)
+                        .setDescription("Mostrando um total de " + maxResults + " resultados")
+                        .setFooter("Você pode adquirir mais resultados colocando um número antes do termo pesquisado")
+                        .setColor(hexVerde)
+                        for (let i = 0; i < maxResults; i++){
+                            embed.addField(res.links[i].title, res.links[i].href)
+                        } 
+                        message.channel.send({embed})
+                    
+                }
+            })
+        
+        break;
+        case "youtube":
+        case "yt":
+        case "video":
+        case "y":
+            var maxResults
+            var pesquisa
+            if (args[0]==undefined){
+                message.channel.send("Você precisa especificar um termo de busca")
+                return;
+            }
+            else if (Number(args[0]) && Number(args[0]) < 10){
+                maxResults = args[0]
+                pesquisa = args.slice(1).join(" ")
+            }else {
+                maxResults = 1
+                pesquisa = args.join(" ")
+            }
+            
+            
+            var url = "https://www.googleapis.com/youtube/v3/search?part=id%2C%20snippet&maxResults=" + maxResults + "&q=" + pesquisa + "&regionCode=BR&type=video&key="+ ytApi
+            request({url: url, json: true}, (err,res,body)=>{
+                if (err || res.statusCode !== 200) return;
+                var embed = new Discord.RichEmbed()
+                    .setAuthor("Pesquisa do YouTube", "https://goo.gl/pnp1Dn")
+                    .setTitle("Termo pesquisado: " + pesquisa)
+                    .setDescription("Mostrando um total de " + maxResults + " resultados")
+                    .setColor(hexVermelho)
+                    .setFooter("Você pode adquirir mais resultados colocando um número antes do termo pesquisado")
+                    if (maxResults == 1) embed.setThumbnail(body.items[0].snippet.thumbnails.high.url)
+                    for(var i = 0; i < maxResults; i++){
+                        embed.addField(body.items[i].snippet.title + " | " + body.items[i].snippet.channelTitle,"http://youtu.be/" + body.items[i].id.videoId)
+                    }
+                    message.channel.send({embed})
+                    
+            })
+        break;
+        case "profile":
+            if(message.mentions.members.size == 0){
+                message.channel.send({embed: profiles[message.author.id]})
+                return;
+            }
+            let id = message.mentions.members.first().id
+            if(!profiles[id]){
+                message.channel.send("Este membro não tem um perfil criado")
+                return;
+            }
+            message.channel.send({embed: profiles[id].embed})
+        break;
+        case "setprofile":
+            if(args[0] == undefined){
+                message.channel.send("Você precisa especificar o ID do seu canal http://prntscr.com/ift8b1")
+                return
+            }
+            id = args[0]
+            var url = "https://www.googleapis.com/youtube/v3/channels?part=snippet%2C%20contentDetails%2C%20brandingSettings%2C%20invideoPromotion%2C%20statistics%2C%20topicDetails&id=" + id + "&key=" + ytApi
+            createProfile(url, id, message)
+            
+
+        break;
+        case "ping":
+            let ping = message.createdTimestamp - new Date().getTime()
+            message.channel.send("Seu ping: " + client.ping + " ms")
+        break;
+            //random    
+        case "random":
+            if (args[0] == undefined){
+                message.channel.send("Você precisa informar um valor máximo")
+                return;
+            }
+            if (!Number(args[0])){
+                message.channel.send("Você precisa informar um valor numérico")
+                return;
+            }
+            if(args[1] == undefined){
+                let random = Math.floor(Math.random() * args[0])
+                message.channel.send("O valor resultante foi: " + random)
+            } 
+            else{
+                if (!Number(args[1])){
+                    message.channel.send("Você precisa informar um valor numérico")
+                    return;
+                }
+                if (Number(args[1]) <= Number(args[0])){
+                    message.channel.send("O valor máximo não pode ser menor ou igual ao valor mínimo")
+                    return;
+                }
+                let random = Math.floor(Math.random() * (args[1]) - (args[0]))
+                random = random + Number(args[0])
+                message.channel.send("O valor resultante foi: " + random)
+            }
+        break;
         case "waffle":
             message.channel.send("Aqui está: " + d1f);
         break;
@@ -205,33 +466,35 @@ client.on("message", (message) =>{
             let embed = new Discord.RichEmbed()
                 .setAuthor(config.author[0] , config.author[1])
                 .setColor(hexBranco)
-                .setTitle("Versão: " + config.version)
+                .setTitle("Versão: " + changelog.versions[0])
                 .setDescription(config.developed)
                 .addField("Pacotes NPM", config.packages, true)
                 .addField("Banco de dados", config.database, true)
                 .setThumbnail(config.botImg)
-                .setFooter(config.compiled)
+                .setFooter("Versão compilada")
+                .setTimestamp(changelog[changelog.versions[0]].timestamp)
             message.channel.send({embed})
                 
         break;
         case "help":
+            
             if (args[0] !== undefined){
                 let cmdHelp = args[0]
+                if (!config.help[cmdHelp]){
+                    message.channel.send("O comando não existe")
+                    return;
+                }
                 message.channel.send("`" + config.prefix + args[0] + config.help[cmdHelp].moreInfo)
                 return;
             }
             else{
-                var helpEmbed = new Discord.RichEmbed()
-                    .setTitle("Todos os comandos estão listados abaixo")
-                    .setDescription("Para adquirir mais informações, digite " + config.prefix + "help e o comando")
-                    .setColor(hexBranco)
-                    .setThumbnail(config.botImg)
+                    let messageToSend = "**Todos os comandos estão listados abaixo** \nPara adquirir mais informações, digite " + config.prefix + "help e o comando \n \n"
                 
                 var help = config.help.commands.forEach(c =>{
-                    helpEmbed.addField(c, config.help[c].info)
+                    messageToSend = messageToSend + "`" + c + "`: " + config.help[c].info + "\n"
                     
                 })
-                message.channel.send({embed:helpEmbed})
+                message.channel.send(messageToSend)
         }
             
         break;
@@ -239,21 +502,21 @@ client.on("message", (message) =>{
         case "helpadm":
             if (args[0] !== undefined){
                 let cmdHelp = args[0]
+                if (!config.helpAdm[cmdHelp]){
+                    message.channel.send("O comando não existe")
+                    return;
+                }
                 message.channel.send("`" + config.prefix + args[0] + config.helpAdm[cmdHelp].moreInfo)
                 return;
             }
             else{
-                var helpAdmEmbed = new Discord.RichEmbed()
-                    .setTitle("Todos os comandos estão listados abaixo")
-                    .setDescription("Para adquirir mais informações, digite " + config.prefix + "helpadm e o comando")
-                    .setColor(hexBranco)
-                    .setThumbnail(config.botImg)
+                    let messageToSend = "**Todos os comandos estão listados abaixo** \nPara adquirir mais informações, digite " + config.prefix + "help e o comando \n \n"
                 
                 var help = config.helpAdm.commands.forEach(c =>{
-                    helpAdmEmbed.addField(c, config.helpAdm[c].info)
+                    messageToSend = messageToSend + "`" + c + "`: " + config.helpAdm[c].info + "\n"
                     
                 })
-                message.channel.send({embed:helpAdmEmbed})}
+                message.channel.send(messageToSend)}
         break;
         
         case "changelog":
@@ -294,10 +557,20 @@ client.on("message", (message) =>{
                         if (!changelog[version]) {
                             changelog[version] = {
                                 short: dividedDesc[0],
-                                long: dividedDesc[1]
+                                long: dividedDesc[1],
+                                timestamp: new Date()
                             }
                             changelog.versions.unshift(version)
                             changelogSave()
+                            let toSend = message.guild.channels.find("name", "anuncios")
+                            let embed = new Discord.RichEmbed()
+                                .setAuthor(message.author.username, message.author.avatarURL)
+                                .setColor(hexVerde)
+                                .setTitle("Versão: "+version)
+                                .addField(dividedDesc[0],dividedDesc[1])
+                                .setTimestamp()
+                            toSend.send("Uma nova versão do bot ficou disponível:")
+                            toSend.send({embed})
                             message.channel.send("Versão adicionada no changelog")
                             return;
                         }
@@ -320,9 +593,65 @@ client.on("message", (message) =>{
             // ======================================================================================
             // ADMINISTRAÇÃO
             // ======================================================================================
+        case "send":
+            if(checkMod()){
+                if(message.mentions.channels.size == 0){
+                    message.channel.send("Você precisa mencionar um canal")
+                    return;
+                }
+                let channel = message.mentions.channels.first()
+                let index = args.indexOf(channel)
+                let messageToSend = args.splice(index,1)
+                channel.send(messageToSend)
+            }
+        break;
+            // clean
+        case "clean":
+        case "clear":
+                if(checkMod(message)){
+                    if(!Number(args[0])){
+                        message.channel.send("Você precisa especificar a quantidade de mensagens a ser apagadas")
+                        return;
+                    }
+                    if (Number(args[0] > 99)){
+                        message.channel.send("Você precisa especificar uma quantidade menor ou igual a 100, desculpa, limitações da API :c")
+                        return;
+                    }
+                    if (message.mentions.members.size == 0) clean()
+                    //else cleanAuthor()
+                    async function clean(){
+                        await message.delete()
+                        await message.channel.bulkDelete(Number(args[0]))
+                        await message.reply("Apagou " + args[0] + " mensagens deste canal")
+                    }
+                    /*
+                    async function cleanAuthor(){
+                        let reason = args.slice(2).join(" ")
+                        let memberMessages = []
+                        message.channel.fetchMessages().then(messages =>{
+                            memberMessages.push(messages.filter(m => m.author.id === message.mentions.members.first().id))
+
+                        })
+                        let toDelete = []   
+                        for (let i = 0; i < Number(args[0]); i++){
+                            toDelete.push(memberMessages[i])
+                            console.log("for")
+                        }
+                        console.log(memberMessages)
+                        await message.channel.bulkDelete(toDelete)
+                        await message.reply("Apagou " + args[0] + " mensagens de " + message.mentions.members.first().user.username + " deste canal, motivo: " + reason)
+                    }
+                    */
+                }
+        break;
+            
             // WARN
         case "warn":
                 if(checkMod(message)){
+                    messageContainer = message
+                    whoWarned = message.author.username + " #" + message.author.discriminator
+                    toWarn = message.mentions.members.first()
+                    reason = args.slice(1).join(" ")
                     if(message.mentions.members.size == 0){
                         message.channel.send("Você precisa mencionar um membro")
                         return;
@@ -335,22 +664,29 @@ client.on("message", (message) =>{
                         message.channel.send("Você precisa especificar um motivo")
                         return;
                     }
-                    whoWarned = message.author.username + " #" + message.author.discriminator
-                    toWarn = message.mentions.members.first()
-                    reason = args.slice(1).join(" ")
+                    
 
                     if(warneds[toWarn.id]){
-                        message.channel.send("Este membro já tem um aviso, deseja criar outro aviso? Isso irá sobescrever o existente")
-                        message.channel.send({embed: warneds[toWarn.id].embed})
-                        message.channel.send("Digite \"sim\" para prosseguir, você tem 30 segundos para fazer isso")
-                        message.channel.send("Digite \"não\" para cancelar, você tem 30 segundos para fazer isso")
-                        warnResponse.add(message.author.id)
+                        console.log(message.id)
+
+                        message.channel.send("Este membro já tem um aviso, deseja criar outro aviso? Isso irá sobescrever o existente").then(m => {messageIds.push(m)})
+                        message.channel.send({embed: warneds[toWarn.id].embed}).then(m => {
+                            react()
+                            async function react(){
+                                await m.react("👍")
+                                await m.react("👎")
+                                messageIds.push(m)
+                            }
+                        })
+                        message.channel.send("Você tem 30 segundos para fazer isso").then(m => {messageIds.push(m)})
+                        .catch(err => {console.log(err)})
+                        warnResponse = message.author.id
                         setTimeout(() =>{
-                            warnResponse.delete(message.author.id)
+                            warnResponse = ""
                         }, secsToMilSecs(30))
                         return;
                     }
-                    warn(message)
+                    warn(messageContainer)
                 }
         break;
 
@@ -459,6 +795,7 @@ client.on("message", (message) =>{
                     .setTimestamp()
                 toSend.send({embed})
                 message.channel.send({embed})
+                 
 
             }
         break;
@@ -537,7 +874,7 @@ client.on("message", (message) =>{
                     .setTimestamp()
                     .setFooter("Para mais informações, visite o registro de auditoria ou o canal #controle")
                 toSend.send({embed})
-                message.channel.send({embed})
+                 
             }
         break
             // BAN
@@ -579,7 +916,7 @@ client.on("message", (message) =>{
                 async function ban(){
                     await toBan.user.send("Você foi banido da FX Masters pelo seguinte motivo: " + reason)
                     await toBan.user.send("Para fazer um apelo, digite " + config.prefix + "appeal em nosso server de apelos: https://discord.gg/ZaMyX8A")
-                    await awaittoBan.user.send("A equipe da FX Masters")
+                    await toBan.user.send("A equipe da FX Masters")
                     toBan.ban({days: args[1], reason: whoBanned + " o baniu por " + args[1] + "dias, motivo: " + reason + " ||| Database: " + toBan.user.username + " : " + toBan.id})
                 }
                 let embed = new Discord.RichEmbed()
@@ -594,6 +931,7 @@ client.on("message", (message) =>{
                 toSend.send({embed})
                 message.channel.send({embed})
 
+                 
             }
         break
             // UNBAN
@@ -619,6 +957,10 @@ client.on("message", (message) =>{
                     delete banned[toUnban]
                     toSend.send({embed})
                     message.channel.send({embed})
+                    if(appealList.has(user.id)){
+                        user.send("Seu apelo foi aceito, você pode se juntar a nós novamente! " + config.invite)
+                        appealList.delete(user.id)
+                    }
                 })
 
             }
@@ -644,6 +986,10 @@ client.on("message", (message) =>{
                     delete banned[toUnban]
                     toSend.send({embed})
                     message.channel.send({embed})
+                    if(appealList.has(user.id)){
+                        user.send("Seu apelo foi aceito, você pode se juntar a nós novamente! " + config.invite)
+                        appealList.delete(user.id)
+                    }
                     
                 })
                 console.log(userIdExists)
@@ -654,56 +1000,87 @@ client.on("message", (message) =>{
         break;
             // APPEAL
         case "appeal":
-            if (banned[message.author.username]){
-                let apeal = args.join(" ")
-                if (args[0] == undefined){
-                    message.channel.send("Você precisa fornecer uma detalhada descrição do seu apelo")
-                    return;
+            if (!checkAdmin()){
+                if (banned[message.author.username]){
+                    let apeal = args.join(" ")
+                    if (args[0] == undefined){
+                        message.channel.send("Você precisa fornecer uma detalhada descrição do seu apelo")
+                        return;
+                    }
+
+                    let toSend = client.guilds.find("name", "FXM").channels.find("name", "controle")
+                    let embed = new Discord.RichEmbed()
+                            .setTitle("Pedido de apelo")
+                            .setColor(hexVermelho)
+                            .setAuthor("FXM Bot Alert", config.botImg)
+                            .setThumbnail(message.author.avatarURL)
+                            .setDescription("Um pedido de apelo está sendo feito por " + message.author.username + " #" + message.author.discriminator)
+                            .addField("Ele(a) acredita que foi banido por:", apeal)
+                            .setTimestamp()
+                            .setFooter("Para mais informações, visite o registro de auditoria ou o canal #controle")
+                        toSend.send({embed})
+                        toSend.send("Id do apelo: " + message.author.id)
+                        message.channel.send({embed})
+                         
+                    }
+                else {
+                    let apeal = args.join(" ")
+                    if (args[0] == undefined){
+                        message.channel.send("Você precisa fornecer uma detalhada descrição do seu apelo")
+                        return;
+                    }
+
+                    let toSend = client.guilds.find("name", "FXM").channels.find("name", "controle")
+                    let embed = new Discord.RichEmbed()
+                            .setTitle("Pedido de apelo")
+                            .setColor(hexLaranja)
+                            .setAuthor("FXM Bot Alert", config.botImg)
+                            .setThumbnail(message.author.avatarURL)
+                            .setDescription("Um pedido de apelo está sendo feito por " + message.author.username + " #" + message.author.discriminator)
+                            .addField("Ele(a) acredita que foi expulso por:", apeal)
+                            .setTimestamp()
+                            .setFooter("Para mais informações, visite o registro de auditoria ou o canal #controle")
+                        toSend.send({embed})
+                        toSend.send("Id do apelo: " + message.author.id)
+                        message.channel.send("Seu pedido foi realizado, aguarde uma providência da nossa equipe.")
+                        message.channel.send({embed})
+                        appealList.add(message.author.id)
+
+                         
                 }
-
-                let toSend = client.guilds.find("name", "FXM").channels.find("name", "controle")
-                let embed = new Discord.RichEmbed()
-                        .setTitle("Pedido de apelo")
-                        .setColor(hexVermelho)
-                        .setAuthor("FXM Bot Alert", config.botImg)
-                        .setThumbnail(message.author.avatarURL)
-                        .setDescription("Um pedido de apelo está sendo feito por " + message.author.username + " #" + message.author.discriminator)
-                        .addField("Ele(a) acredita que foi banido por:", apeal)
-                        .setTimestamp()
-                        .setFooter("Para mais informações, visite o registro de auditoria ou o canal #controle")
-                    toSend.send({embed})
-                    message.channel.send({embed})
-
-
             }
             else {
-                let apeal = args.join(" ")
-                if (args[0] == undefined){
-                    message.channel.send("Você precisa fornecer uma detalhada descrição do seu apelo")
-                    return;
-                }
+                if (args[0] == "accept"){
 
-                let toSend = client.guilds.find("name", "FXM").channels.find("name", "controle")
-                let embed = new Discord.RichEmbed()
-                        .setTitle("Pedido de apelo")
-                        .setColor(hexLaranja)
-                        .setAuthor("FXM Bot Alert", config.botImg)
-                        .setThumbnail(message.author.avatarURL)
-                        .setDescription("Um pedido de apelo está sendo feito por " + message.author.username + " #" + message.author.discriminator)
-                        .addField("Ele(a) acredita que foi expulso por:", apeal)
-                        .setTimestamp()
-                        .setFooter("Para mais informações, visite o registro de auditoria ou o canal #controle")
-                    toSend.send({embed})
-                    message.channel.send({embed})
+                }
             }
         break;
 
             // ===========================================
+        case "eval":
+            function clean(text) {
+                if (typeof(text) === "string")
+                return text.replace(/`/g, "`" + String.fromCharCode(8203)).replace(/@/g, "@" + String.fromCharCode(8203));
+                else
+                    return text;
+            }
+            if(message.author.id !== "301505269391687680") return;
+            try {
+            const code = args.join(" ");
+            let evaled = eval(code);
+        
+            if (typeof evaled !== "string")
+                evaled = require("util").inspect(evaled);
+        
+            message.channel.send(clean(evaled), {code:"xl"});
+            } catch (err) {
+            message.channel.send(`\`ERROR\` \`\`\`xl\n${clean(err)}\n\`\`\``);
+            }
+        break;
         default :
             message.channel.send(randomMessage())
         break;
     }
-
 
 
 });
@@ -729,4 +1106,13 @@ client.on("warn", (e) => {
     toSend.send()
 });
 
-client.login(config.token)
+var a = schedule.scheduleJob('0 0 * * *', function(){
+    console.log("Starting updating profiles")
+    console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
+    let ids = Object.keys(profiles).forEach(id =>{
+        updateProfile(id)
+    })
+})
+
+client.login(token.token)
+process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));

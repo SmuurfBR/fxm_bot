@@ -1,0 +1,4 @@
+removido stats
+adicionado busca no yotube
+google
+novo help
