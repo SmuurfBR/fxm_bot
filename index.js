@@ -1114,5 +1114,5 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     })
 })
 
-client.login(token.token)
+client.login(process.env.BOT_TOKEN)
 process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));
