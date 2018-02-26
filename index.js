@@ -7,7 +7,6 @@ const google = require("google")
 const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
 
-const token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
@@ -1157,5 +1156,5 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     })
 })
 
-client.login(token.token)
+client.login(process.env.BOT_TOKEN)
 process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));
