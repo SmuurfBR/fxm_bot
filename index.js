@@ -7,6 +7,7 @@ const google = require("google")
 const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
 
+const token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
@@ -19,6 +20,7 @@ var appealsKicks = []
 
 var muted = new Set();
 var appealList = new Set();
+var onChat = new Set();
 
 
 var warnResponse = ""
@@ -220,6 +222,8 @@ function updateProfile(id){
         }
     })
 }
+
+
 // ==================================================================================================
 
 // ==================================================================================================
@@ -259,13 +263,41 @@ client.on("message", (message) =>{
         return;
 
     }
+
+    
+
+    if(onChat.has(message.author.id)){
+        if (message.content == ".chat"){
+            message.reply("Você foi removido do ChatBot")
+            onChat.delete(message.author.id)
+            return;
+        }
+        var entry
+        if (message.content == "") entry = "ahfeahfea" 
+        entry = encodeURIComponent(message.content)
+        var url = "https://api.dialogflow.com/v1/query?v=20170712&query=" + entry + "&lang=pt-br&sessionId=f5afe3ab-6def-4d78-b412-39236534fe7c&timezone=America/Sao_Paulo"
+        snekfetch.get(
+            url , { headers: { 'Authorization': 'Bearer 53f6b34b22634536afbc2d01c3cc6e44' } })
+            .then(r => {
+                message.channel.send(r.body.result.fulfillment.speech)
+                if(r.body.result.fulfillment.speech == "Não entendi, mas sua mensagem foi salva para que possa ser usada no meu treinamento"){
+                    entry = decodeURIComponent(entry)
+                    fs.writeFile("./ChatTraining/" + message.createdTimestamp + ".txt", entry, (err) =>{
+                        
+                        if (err) throw err
+                    })
+                }
+        })  
+        return;  
+    }
+    var command = args[0]
+    command = command.slice(config.prefix.length);
+    args.shift()
     
     if(!message.content.startsWith(config.prefix) || message.author.bot) return;
     
         
-    var command = args[0]
-    command = command.slice(config.prefix.length);
-    args.shift()
+    
 
     if(maintaince) {
         if(message.content.startsWith(config.prefix + "maintance")){
@@ -285,17 +317,9 @@ client.on("message", (message) =>{
             // COMANDOS
             // ======================================================================================
         case "chat":
-            var entry
-            if (args[0] == undefined) entry = "hasnfae"
-            else entry = args.join("%20")
-            var url = "https://api.dialogflow.com/v1/query?v=20170712&query=" + entry + "&lang=pt-br&sessionId=f5afe3ab-6def-4d78-b412-39236534fe7c&timezone=America/Sao_Paulo"
-            snekfetch.get(
-                url , { headers: { 'Authorization': 'Bearer 53f6b34b22634536afbc2d01c3cc6e44' } })
-                .then(r => {
-                    message.channel.send(r.body.result.fulfillment.speech)
-            })             
-
-            
+                message.reply("Você foi adicionado ao ChatBot, para sair digite `" + config.prefix + "chat` novamente")
+                onChat.add(message.author.id)
+                return;  
         break;
         case "short":
         case "shortener":
@@ -1133,5 +1157,5 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     })
 })
 
-client.login(process.env.BOT_TOKEN)
+client.login(token.token)
 process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));
