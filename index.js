@@ -1,3 +1,5 @@
+import { SIGBREAK } from "constants";
+
 const Discord = require("discord.js");
 const client = new Discord.Client();
 const fs = require("fs");
@@ -7,6 +9,7 @@ const google = require("google")
 const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
 
+const token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
@@ -23,6 +26,7 @@ var appealList = new Set();
 
 var warnResponse = ""
 var messageContainer
+var maintaince = false
 
 let whoWarned
 let toWarn
@@ -258,12 +262,24 @@ client.on("message", (message) =>{
         return;
 
     }
+    
     if(!message.content.startsWith(config.prefix) || message.author.bot) return;
     
         
     var command = args[0]
     command = command.slice(config.prefix.length);
     args.shift()
+
+    if(maintaince) {
+        if(message.content.startsWith(config.prefix + "maintance")){
+            maintaince = false
+            message.channel.send("Modo manutenção desativado")
+            client.user.setStatus("online")
+            client.user.setPresence({game:{name: config.prefix + "help", type: 0}});
+            return;
+        }
+        else return;
+    }
 
     
     switch (command){
@@ -592,6 +608,13 @@ client.on("message", (message) =>{
             // ======================================================================================
             // ADMINISTRAÇÃO
             // ======================================================================================
+        case "maintance":
+                maintaince = true
+                message.channel.send("Ativando o modo manutenção")
+                client.user.setPresence({game:{name: "Em manutenção", type: 0}});
+                client.user.setStatus("idle")
+                return;
+        break;
         case "send":
             if(checkMod()){
                 if(message.mentions.channels.size == 0){
@@ -1113,5 +1136,5 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     })
 })
 
-client.login(process.env.BOT_TOKEN)
+client.login(token.token)
 process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));
