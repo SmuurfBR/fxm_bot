@@ -1,7 +1,7 @@
 {
         "author" : ["Autor: MarcVFX", "https://i.imgur.com/gqU5pl8.png"],
         "botImg" : "https://i.imgur.com/ZK4RNka.png",
-        "developed" : "Desenvolvida utilizando a biblioteca do `Discord.js v11.3.0` com o `Node.js v8.9.4` e escrito no `Visual Studio Code v1.20.0`",
+        "developed" : "Desenvolvida utilizando a biblioteca do `Discord.js v11.3.2` com o `Node.js v8.9.4` e escrito no `Visual Studio Code v1.20.0`",
         "packages" : "`request` e `node-schedule` é utilizado para obter informações sobre um canal do youtube e fazer uma pesquisa com a api do mesmo. `google` é usado para fazer pesquisas no google. `tinyurl` é usado para o encurtador de links",
         "database" : "O banco de dados utiliza um sistema simples, baseado em `JavaScript Oriented Objects (JSON)` e `FS`",
         "prefix" : ".",
