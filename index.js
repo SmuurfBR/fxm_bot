@@ -1148,7 +1148,7 @@ client.on("warn", (e) => {
     toSend.send()
 });
 
-var a = schedule.scheduleJob('0 0 * * *', function(){
+var a = schedule.scheduleJob('0 20 * * *', function(){
     console.log("Starting updating profiles")
     console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
     let ids = Object.keys(profiles).forEach(id =>{
