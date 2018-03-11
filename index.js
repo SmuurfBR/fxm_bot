@@ -13,6 +13,7 @@ var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
 var warneds = JSON.parse(fs.readFileSync("./Database/avisados.json", "utf8"))
 var changelog = JSON.parse(fs.readFileSync("./Database/changelog.json", "utf8"))
 var profiles = JSON.parse(fs.readFileSync("./Database/profiles.json", "utf8"))
+var giveaways = JSON.parse(fs.readFileSync("./Database/sorteios.json", "utf8"))
 
 var appealsBans = []
 var appealsKicks = []
@@ -21,6 +22,15 @@ var muted = new Set();
 var appealList = new Set();
 var onChat = new Set();
 
+var giveawayTitle
+var giveawayP1 = new Set();
+var giveawayP2 = new Set();
+var giveawayP3 = new Set();
+var giveawayP4 = new Set();
+var description = "N/A"
+var max = 1000
+var min = 0
+var days = 7
 
 var warnResponse = ""
 var messageContainer
@@ -50,6 +60,11 @@ var d1f = "https://youtu.be/gW8FbixbI-s"
 
 
 
+function giveawaysSave(){
+    fs.writeFile("./Database/sorteios.json", JSON.stringify(giveaways), (err) => {
+        if (err) console.error(err)
+      });
+}
 
 function bannedSave(){
     fs.writeFile("./Database/banidos.json", JSON.stringify(banned), (err) => {
@@ -93,21 +108,26 @@ function checkMod(message){
         return false
     }
 }
-
+function yearsToMilSecs(years){
+    return monthsToMilSecs(years*12)
+}
+function monthsToMilSecs(months){
+    return weeksToMilSecs(months * 4 + 2)
+}
+function weeksToMilSecs(weeks){
+    return daysToMilSecs(weeks*7)
+}
+function daysToMilSecs(days){
+    return hoursToMilSecs(days*24)
+}
 function hoursToMilSecs(hours){
-    let mins = hours * 60
-    let seconds = mins * 60
-    let milSeconds = seconds * 1000
-    return milSeconds
+    return minsToMilSecs(hours*60)
 }
 function minsToMilSecs(mins){
-    let seconds = mins * 60
-    let milSeconds = seconds * 1000
-    return milSeconds
+    return secsToMilSecs(mins*60)
 }
 function secsToMilSecs(secs){
-    let milSeconds = secs * 1000
-    return milSeconds
+    return secs*1000
 }
 
 function randomMessage(type1, type2){
@@ -191,7 +211,6 @@ function createProfile(url, id, message){
 function updateProfile(id){
     console.log("Updating profile: " + id)
     let url = "https://www.googleapis.com/youtube/v3/channels?part=snippet%2C%20contentDetails%2C%20brandingSettings%2C%20invideoPromotion%2C%20statistics%2C%20topicDetails&id=" + profiles[id].channelId + "&key=" + ytApi
-    console.log(id)
     request({
         url: url,
         json: true
@@ -222,7 +241,38 @@ function updateProfile(id){
     })
 }
 
-
+var actualDate = new Date()
+Object.keys(giveaways).forEach(give =>{
+    if (giveaways[give].date == actualDate){
+        if(giveaways[give].min > giveaways[give].members){
+            var channelId = giveaways[give].channel
+            client.guilds.find("name", "FXM").channelId.fetchMessage(giveaways[give].message, (message) =>{
+                var giveawayMessage = message
+                var giveawayAuthor = message.author
+                giveawayAuthor.send("O seu sorteio não foi realizado por não ter alcançado o mínimo de participantes necessários")
+                giveawayMessage.delete()
+                delete giveaways[give]
+                giveawaysSave()
+            })
+        } else {
+            client.guilds.find("name", "FXM").channelId.fetchMessage(giveaways[give].message, (message) =>{
+                var winnerId = giveaways[give].membersId[Math.floor(Math.random() * giveaways[give].members)]
+                client.fetchUser(winnerId).then(winner =>{
+                    message.channels.find("name", "anuncios").send("O ganhador do sorteio " + giveaways[give].title + "foi o " + "<@" + winner.id + ">, Parabéns!\nPara resgatar o seu prêmio, fale com o <@" + giveaways + ">")
+                    message.author.send("O ganhador do sorteio foi " + "<@" + winner.id + ">")
+                    message.delete()
+                    delete giveaways[give]
+                    giveawaysSave()
+            })
+            
+            })
+            }
+            
+            
+        }
+        
+    }
+)
 // ==================================================================================================
 
 // ==================================================================================================
@@ -233,15 +283,49 @@ client.on("messageReactionAdd", (reaction, user) =>{
             warnResponse = ""
             messageContainer.channel.bulkDelete(messageIds)
             messageContainer.channel.send("Aviso criado")
+            return;
         }
         if (reaction.emoji.name == "👎"){
             warnResponse = ""
             messageContainer.channel.bulkDelete(messageIds)
             messageContainer.channel.send("Aviso cancelado")
+            return;
         }
-        else return;
+    }
+    if (reaction.emoji.id == "381471384527699968"){
+        var authorId = reaction.message.author.id
+        if(giveaways[authorId].max == giveaways[authorId].members){
+            reaction.message.channel.send("Este sorteio atingiu o máximo de membros permitidos").then(msg =>{
+                setTimeout(() =>{
+                    msg.delete()
+                }, secsToMilSecs(10))
+                
+            })
+            return;
+        }
+        Object.keys(giveaways[authorId].membersId).forEach(member =>{
+            if (user.id == member){
+                reaction.message.channel.send("Você já está participando deste sorteio").then(msg =>{
+                    setTimeout(() =>{
+                        msg.delete()
+                    }, secsToMilSecs(10))
+                    
+                })
+                return;
+            }
+        
+        var giveUserId = user.id
+        giveaways[authorId].membersId = {giveUserId : user.Id}
+        giveaways[authorId].members++
+        giveawaysSave()
+        reaction.message.edit("Participantes: "+ giveaways[authorId].members, {embed: giveaways[authorId].embed})
+        })
+        
     }
 })
+// ==================================================================================================
+
+// ==================================================================================================
 client.on("ready", () =>{
     client.user.setPresence({game:{name: config.prefix + "help", type: 0}});
     console.log(" ")
@@ -252,6 +336,9 @@ client.on("ready", () =>{
     console.log(" ")
     console.log(" ")
 });
+// ==================================================================================================
+
+// ==================================================================================================
 client.on("message", (message) =>{  
     
     
@@ -262,9 +349,45 @@ client.on("message", (message) =>{
         return;
 
     }
+// com prefixo abaixo
+    if(message.author.bot) return;
 
+
+    if(message.channel.name == "d1f" && !message.content.includes("http")){
+        message.delete()
+        message.reply("Você precisa enviar um link válido").then(msg =>{
+            setInterval(function(){
+                msg.delete()
+            }, secsToMilSecs(10))
+            return
+        })
+    }
+    if(message.channel.name == "d1f" && message.content.includes("http")){
+        message.reply("A sua intro foi adicionada à fila").then(msg =>{
+            var intro = message.author.username + " | " + message.content
+            fs.writeFile("./D1F/" + message.author.username + ".txt", intro, (err) =>{        
+                if (err) throw err
+            })
+            setInterval(function(){
+                msg.delete()
+            },secsToMilSecs(10))
+        })
+    }
+
+
+    if(!message.content.startsWith(config.prefix)) return;
     
 
+    if(message.guild.name == "FXM"){
+        if(message.channel.name !== "bot_commands" && !checkAdmin(message)) return
+    }
+    
+    
+
+
+// ==================================================================================================
+
+// ==================================================================================================
     if(onChat.has(message.author.id)){
         if (message.content == ".chat"){
             message.reply("Você foi removido do ChatBot")
@@ -289,14 +412,92 @@ client.on("message", (message) =>{
         })  
         return;  
     }
+// ==================================================================================================
+
+// ==================================================================================================
+if (giveawayP1.has(message.author.id)){        
+        if(args[0] == "cancel"){
+            giveawayP1.delete(message.author.id)
+            message.channel.send("Sorteio cancelado")
+            return;
+        }
+        description = args.join(" ")
+        console.log(description)
+        message.channel.send("`" + description + "`." +" Agora, digite o número mínimo de participantes do sorteio (o padrão é 1). Caso o número não seja atingido até a data do sorteio, o mesmo será anulado. Você pode digitar cancel para cancelar")
+        giveawayP2.add(message.author.id)
+        giveawayP1.delete(message.author.id)
+        return;
+    }
+
+if(giveawayP2.has(message.author.id)){
+    if(!Number(args[0])) min = 1
+    else min = Number(args[0])
+    console.log(min)
+    message.channel.send("`" + min + "`." + " Agora, defina o número máximo de participantes do sorteio (o padrão é 1000). Caso o número seja atingido, nínguem mais poderá se juntar ao sorteio. Você pode digitar cancel para cancelar")
+    giveawayP3.add(message.author.id)
+    giveawayP2.delete(message.author.id)
+    return; 
+}
+
+if(giveawayP3.has(message.author.id)){          
+    if(!Number(args[0])) max = 1000
+    else max = Number(args[0])
+    console.log(max)
+    message.channel.send("`" + max + "`. " + "Por último, agora defina o número de dias em que o sorteio deve ser realizado (o padrão é 7 dias). Você pode digitar cancel para cancelar")
+    giveawayP4.add(message.author.id)
+    giveawayP3.delete(message.author.id)
+    return;
+} 
+
+if(giveawayP4.has(message.author.id)){
+    if(!Number(args[0])) days = 7
+    else days = Number(args[0])
+    generateGiveawayEmbed(giveawayTitle,description,min,max,days,message)
+    giveawayP4.delete(message.author.id)
+    return;
+} 
+message
+function generateGiveawayEmbed(title,description,min,max,days,msg){
+    var notDate = new Date().setDate(days)
+    giveawayDate = new Date(notDate).toISOString()
+    let embed = new Discord.RichEmbed()
+        .setAuthor("Sorteio realizado por: " + msg.author.username, msg.author.avatarURL)
+        .setColor(hexVerde)
+        .setTitle(title)
+        .setDescription(description)
+        .addField("Número mínimo de participantes", min)
+        .addField("Número máximo de participantes", max)
+        .setFooter("O sorteio será realizado em:")
+        .setTimestamp(giveawayDate)
+    giveaways[msg.author.id] = {
+        title : title,
+        desc : description,
+        min : min,
+        max : max,
+        days : days,
+        embed : embed,
+        members : 0,
+        membersId : {},
+        date : giveawayDate,
+        message : msg.id,
+        channel : msg.channel.id
+    }
+    giveawaysSave()
+    msg.channel.send({embed: embed})
+    msg.guild.channels.find("name", "anuncios").send("Participantes: " + "0",{embed: embed}).then(emb => {
+        emb.react(client.emojis.get("381471384527699968"))
+        console.log(msg.author.id)
+    })
+}
+// ==================================================================================================
     var command = args[0]
     command = command.slice(config.prefix.length);
     args.shift()
     
-    if(!message.content.startsWith(config.prefix) || message.author.bot) return;
     
-        
-    
+// ==================================================================================================
+
+// ==================================================================================================
 
     if(maintaince) {
         if(message.content.startsWith(config.prefix + "maintance")){
@@ -447,7 +648,7 @@ client.on("message", (message) =>{
         break;
         case "ping":
             let ping = message.createdTimestamp - new Date().getTime()
-            message.channel.send("Seu ping: " + client.ping + " ms")
+            message.channel.send("Seu ping: " + Math.floor(client.ping) + " ms")
         break;
             //random    
         case "random":
@@ -628,6 +829,29 @@ client.on("message", (message) =>{
             // ======================================================================================
             // ADMINISTRAÇÃO
             // ======================================================================================
+        case "giveaway":
+        case "sorteio":
+        case "sortear":
+                if(checkAdmin(message)){
+                    if(giveaways == message.author.id){
+                        if(args[0] == undefined){
+                            message.channel.send("Você não pode ter mais de um sorteio em andamento")
+                            return;
+                        }
+                        else if(args[0] == "delete"){
+                            delete giveaways[message.author.id]
+                        }
+                    }
+                    if(args[0] == undefined){
+                        message.channel.send("Você precisa definir um título para o sorteio")
+                        return;
+                    }
+                    message.channel.send("`" + giveawayTitle + "`." + " Determine uma descrição para o sorteio. Você pode digitar cancel para cancelar")
+                    giveawayTitle = args.join(" ")
+                    giveawayP1.add(message.author.id)
+
+                }
+        break;
         case "maintance":
                 maintaince = true
                 message.channel.send("Ativando o modo manutenção")
@@ -1148,7 +1372,7 @@ client.on("warn", (e) => {
     toSend.send()
 });
 
-var a = schedule.scheduleJob('0 20 * * *', function(){
+var a = schedule.scheduleJob('0 0 * * *', function(){
     console.log("Starting updating profiles")
     console.log("-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-")
     let ids = Object.keys(profiles).forEach(id =>{
