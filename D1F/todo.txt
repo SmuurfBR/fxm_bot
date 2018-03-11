@@ -1,0 +1,4 @@
+- apagar mensagem de limpeza
+- terminar o sorteio
+- traduzir os comandos
+- criar um identificador para o checkAdmin para não enviar mensagem caso não tenha permissões e atualizar o checador do canal bot_commands
