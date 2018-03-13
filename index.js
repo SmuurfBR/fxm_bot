@@ -6,7 +6,11 @@ const schedule = require("node-schedule")
 const google = require("google")
 const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
+const { gitCommitPush } = require("git-commit-push-via-github-api")
 
+
+
+var token = require("./token.json")
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 var banned = JSON.parse(fs.readFileSync("./Database/banidos.json", "utf8"));
@@ -63,47 +67,116 @@ var d1f = "https://youtu.be/gW8FbixbI-s"
 function giveawaysSave(){
     fs.writeFile("./Database/sorteios.json", JSON.stringify(giveaways), (err) => {
         if (err) console.error(err)
-      });
+      });    
+    gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+
+        files : [{ path: "Database/sorteios.json", content: fs.readFileSync("./Database/sorteios.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic giveawaysSave() JSON commit"
+    }).then(res =>{
+        console.log("succes", res)
+    }).catch(err =>{
+        console.error(err)
+    })
 }
 
 function bannedSave(){
     fs.writeFile("./Database/banidos.json", JSON.stringify(banned), (err) => {
         if (err) console.error(err)
       });
+    gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+
+        files : [{ path: "Database/banidos.json", content: fs.readFileSync("./Database/banidos.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic bannedSave() JSON commit"
+    }).then(res =>{
+        console.log("succes", res)
+    }).catch(err =>{
+        console.error(err)
+    })
 }
 
 function warnedsSave(){
     fs.writeFile("./Database/avisados.json", JSON.stringify(warneds), (err) => {
         if (err) console.error(err)
       });
+    gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+
+        files : [{ path: "Database/avisados.json", content: fs.readFileSync("./Database/avisados.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic warndsSave() JSON commit"
+    }).then(res =>{
+        console.log("succes", res)
+    }).catch(err =>{
+        console.error(err)
+    })
 }
 
 function changelogSave(){
     fs.writeFile("./Database/changelog.json", JSON.stringify(changelog), (err) => {
         if (err) console.error(err)
     });
+    gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+
+        files : [{ path: "Database/changelog.json", content: fs.readFileSync("./Database/changelog.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic changelogSave() JSON commit"
+    }).then(res =>{
+        console.log("succes", res)
+    }).catch(err =>{
+        console.error(err)
+    })
 }
 
 function profileSave(){
     fs.writeFile("./Database/profiles.json", JSON.stringify(profiles), (err) => {
         if (err) console.error(err)
     });
+    gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+
+        files : [{ path: "Database/profiles.json", content: fs.readFileSync("./Database/profiles.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic profileSave() JSON commit"
+    }).then(res =>{
+        console.log("succes", res)
+    }).catch(err =>{
+        console.error(err)
+    })
 }
-function checkAdmin(message){
+function checkAdmin(message,send){
+    if (send == null || undefined) send = true
     if (message.member.roles.some(r => ["Dono", "Admin"].includes(r.name))){
         return true
     }
     else if (message.member.roles.some(r => ["Moderadores"].includes(r.name))) randomMessage("", "lowPerms")
     else {
+        if(!send) return false
         message.channel.send(randomMessage("" , "perms"))
         return false
     }
 }
-function checkMod(message){
+function checkMod(message,send){
+    if (send == null || undefined) send = true
     if (message.member.roles.some(r => ["Dono", "Moderadores", "Admin"].includes(r.name))){
         return true
     }
     else {
+        if(!send) return false
         message.channel.send(randomMessage("" , "perms"))
         return false
     }
@@ -273,10 +346,12 @@ Object.keys(giveaways).forEach(give =>{
         
     }
 )
+
 // ==================================================================================================
 
 // ==================================================================================================
 client.on("messageReactionAdd", (reaction, user) =>{
+    if (user.bot) return;
     if (user.id == warnResponse){
         if (reaction.emoji.name == "👍"){
             warn(messageContainer)
@@ -293,7 +368,17 @@ client.on("messageReactionAdd", (reaction, user) =>{
         }
     }
     if (reaction.emoji.id == "381471384527699968"){
-        var authorId = reaction.message.author.id
+        var exists = false
+        var authorId
+        Object.keys(giveaways).forEach(key =>{
+            if (reaction.message.content.includes(giveaways[key].author)){
+                exists = true
+                authorId = giveaways[key].author
+            }
+        })
+        
+        console.log(authorId)
+        
         if(giveaways[authorId].max == giveaways[authorId].members){
             reaction.message.channel.send("Este sorteio atingiu o máximo de membros permitidos").then(msg =>{
                 setTimeout(() =>{
@@ -375,11 +460,11 @@ client.on("message", (message) =>{
     }
 
 
-    if(!message.content.startsWith(config.prefix)) return;
+
     
 
     if(message.guild.name == "FXM"){
-        if(message.channel.name !== "bot_commands" && !checkAdmin(message)) return
+        if(message.channel.name !== "bot_commands" && !checkAdmin(message,false)) return
     }
     
     
@@ -421,7 +506,7 @@ if (giveawayP1.has(message.author.id)){
             message.channel.send("Sorteio cancelado")
             return;
         }
-        description = args.join(" ")
+        description = message.content
         console.log(description)
         message.channel.send("`" + description + "`." +" Agora, digite o número mínimo de participantes do sorteio (o padrão é 1). Caso o número não seja atingido até a data do sorteio, o mesmo será anulado. Você pode digitar cancel para cancelar")
         giveawayP2.add(message.author.id)
@@ -430,6 +515,11 @@ if (giveawayP1.has(message.author.id)){
     }
 
 if(giveawayP2.has(message.author.id)){
+    if(args[0] == "cancel"){
+        giveawayP2.delete(message.author.id)
+        message.channel.send("Sorteio cancelado")
+        return;
+    }
     if(!Number(args[0])) min = 1
     else min = Number(args[0])
     console.log(min)
@@ -439,7 +529,12 @@ if(giveawayP2.has(message.author.id)){
     return; 
 }
 
-if(giveawayP3.has(message.author.id)){          
+if(giveawayP3.has(message.author.id)){  
+    if(args[0] == "cancel"){
+        giveawayP3.delete(message.author.id)
+        message.channel.send("Sorteio cancelado")
+        return;
+    }        
     if(!Number(args[0])) max = 1000
     else max = Number(args[0])
     console.log(max)
@@ -450,23 +545,33 @@ if(giveawayP3.has(message.author.id)){
 } 
 
 if(giveawayP4.has(message.author.id)){
+    if(args[0] == "cancel"){
+        giveawayP4.delete(message.author.id)
+        message.channel.send("Sorteio cancelado")
+        return;
+    }
     if(!Number(args[0])) days = 7
     else days = Number(args[0])
     generateGiveawayEmbed(giveawayTitle,description,min,max,days,message)
     giveawayP4.delete(message.author.id)
     return;
 } 
-message
 function generateGiveawayEmbed(title,description,min,max,days,msg){
-    var notDate = new Date().setDate(days)
-    giveawayDate = new Date(notDate).toISOString()
+    var giveawayDate = new Date().setDate(addDays(new Date(), days))
+    giveawayDate = new Date(giveawayDate).toISOString()
+    function addDays(date,d){
+        var result = new Date(date);
+        result = (result.getDate() + d);
+        return result
+    }
+    
     let embed = new Discord.RichEmbed()
         .setAuthor("Sorteio realizado por: " + msg.author.username, msg.author.avatarURL)
         .setColor(hexVerde)
         .setTitle(title)
         .setDescription(description)
-        .addField("Número mínimo de participantes", min)
-        .addField("Número máximo de participantes", max)
+        .addField("Número mínimo de participantes", min,true)
+        .addField("Número máximo de participantes", max,true)
         .setFooter("O sorteio será realizado em:")
         .setTimestamp(giveawayDate)
     giveaways[msg.author.id] = {
@@ -480,16 +585,23 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         membersId : {},
         date : giveawayDate,
         message : msg.id,
-        channel : msg.channel.id
+        channel : msg.channel.id,
+        author : msg.author.id
     }
-    giveawaysSave()
-    msg.channel.send({embed: embed})
-    msg.guild.channels.find("name", "anuncios").send("Participantes: " + "0",{embed: embed}).then(emb => {
-        emb.react(client.emojis.get("381471384527699968"))
-        console.log(msg.author.id)
-    })
+    save()
+    async function save(){
+        await giveawaysSave()
+        await msg.channel.send({embed: embed})
+        await msg.guild.channels.find("name", "anuncios").send(msg.author.id + " | Participantes: " + "0",{embed: embed}).then(emb => {
+            emb.react(client.emojis.get("381471384527699968"))
+            console.log(msg.author.id)
+        })
+    }
+    
+    
 }
 // ==================================================================================================
+    if(!message.content.startsWith(config.prefix)) return;
     var command = args[0]
     command = command.slice(config.prefix.length);
     args.shift()
@@ -517,6 +629,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             // COMANDOS
             // ======================================================================================
         case "chat":
+        case "conversa":
                 message.reply("Você foi adicionado ao ChatBot, para sair digite `" + config.prefix + "chat` novamente")
                 onChat.add(message.author.id)
                 return;  
@@ -524,6 +637,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         case "short":
         case "shortener":
         case "shorter":
+        case "encurtar":
+        case "encurtardor":
             if(args[0] == undefined){
                 message.channel.send("Você precisa especificar uma URL a ser encurtada")
                 return;
@@ -538,10 +653,11 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             })
         break;
         case "google":
-        case "gl":
         case "search":
         case "s":
         case "g":
+        case "pesquisa":
+        case "pesquisar":
             var maxResults
             var pesquisa
             if (args[0] == undefined){
@@ -624,6 +740,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             })
         break;
         case "profile":
+        case "perfil":
             if(message.mentions.members.size == 0){
                 message.channel.send({embed: profiles[message.author.id]})
                 return;
@@ -636,6 +753,9 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             message.channel.send({embed: profiles[id].embed})
         break;
         case "setprofile":
+        case "setarperfil":
+        case "setperfil":
+        case "setarprofile":
             if(args[0] == undefined){
                 message.channel.send("Você precisa especificar o ID do seu canal http://prntscr.com/ift8b1")
                 return
@@ -652,6 +772,10 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             //random    
         case "random":
+        case "aleatorio":
+        case "randomico":
+        case "aleatório":
+        case "randômico":
             if (args[0] == undefined){
                 message.channel.send("Você precisa informar um valor máximo")
                 return;
@@ -692,6 +816,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
 
             //invite
         case "invite":
+        case "convite":
+        case "convidar":
             message.channel.send("Aqui está: " + config.invite + " c:")
         break;
 
@@ -713,7 +839,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                 
         break;
         case "help":
-            
+        case "ajuda":
             if (args[0] !== undefined){
                 let cmdHelp = args[0]
                 if (!config.help[cmdHelp]){
@@ -736,6 +862,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
 
         case "helpadm":
+        case "ajudaadm":
             if (args[0] !== undefined){
                 let cmdHelp = args[0]
                 if (!config.helpAdm[cmdHelp]){
@@ -756,6 +883,10 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
         
         case "changelog":
+        case "alterações":
+        case "alteracoes":
+        case "alteraçoes":
+        case "alteracões":
                 if(args[0] == undefined){
                     let embed = new Discord.RichEmbed()
                         .setColor(hexBranco)
@@ -846,13 +977,16 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                         message.channel.send("Você precisa definir um título para o sorteio")
                         return;
                     }
-                    message.channel.send("`" + giveawayTitle + "`." + " Determine uma descrição para o sorteio. Você pode digitar cancel para cancelar")
                     giveawayTitle = args.join(" ")
+                    message.channel.send("`" + giveawayTitle + "`." + " Determine uma descrição para o sorteio. Você pode digitar cancel para cancelar")
+                    
                     giveawayP1.add(message.author.id)
 
                 }
         break;
         case "maintance":
+        case "maintaince":
+        case "manutenção":
                 maintaince = true
                 message.channel.send("Ativando o modo manutenção")
                 client.user.setPresence({game:{name: "Em manutenção", type: 0}});
@@ -860,6 +994,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                 return;
         break;
         case "send":
+        case "enviar":
             if(checkMod()){
                 if(message.mentions.channels.size == 0){
                     message.channel.send("Você precisa mencionar um canal")
@@ -874,6 +1009,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             // clean
         case "clean":
         case "clear":
+        case "limpar":
+        case "apagar":
                 if(checkMod(message)){
                     if(!Number(args[0])){
                         message.channel.send("Você precisa especificar a quantidade de mensagens a ser apagadas")
@@ -888,7 +1025,11 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                     async function clean(){
                         await message.delete()
                         await message.channel.bulkDelete(Number(args[0]))
-                        await message.reply("Apagou " + args[0] + " mensagens deste canal")
+                        await message.reply("Apagou " + args[0] + " mensagens deste canal").then(msg =>{
+                            setInterval(() =>{
+                                msg.delete()
+                            }, secsToMilSecs(10))
+                        })
                     }
                     /*
                     async function cleanAuthor(){
@@ -913,6 +1054,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             
             // WARN
         case "warn":
+        case "aviso":
+        case "avisar":
                 if(checkMod(message)){
                     messageContainer = message
                     whoWarned = message.author.username + " #" + message.author.discriminator
@@ -958,6 +1101,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
 
             // REMOVE WARN
         case "removewarn":
+        case "removeraviso":
+        case "removerwarn":
                 if(checkAdmin(message)){
                     let whoRemoved = message.author.username + " #" + message.author.discriminator
                     let toRemove = message.mentions.members.first()
@@ -995,6 +1140,9 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // VIEW WARN
         case "viewwarn":
+        case "veraviso":
+        case "visualizaraviso":
+        case "verwarn":
             if (checkMod(message)){
                 let toView = message.mentions.members.first()
                 
@@ -1016,6 +1164,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // MUTE
         case "mute":
+        case "silenciar":
+        case "calar":
             if (checkMod(message)){
                 let whoMuted = message.author.username + " #" + message.author.discriminator
                 let reason = args.slice(2).join(" ")
@@ -1067,6 +1217,9 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // UNMUTE
         case "unmute":
+        case "desmutar":
+        case "descalar":
+        case "desilenciar":
             if (checkMod(message)){
                 
 
@@ -1101,6 +1254,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // KICK
         case "kick":
+        case "expulsar":
             if (checkMod(message)){
                 let whoKicked = message.author.username + " #" + message.author.discriminator
                 if(args[1] == undefined){
@@ -1145,6 +1299,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break
             // BAN
         case "ban":
+        case "banir":
             if (checkAdmin(message)){
                 
                 let whoBanned = message.author.username + " #" + message.author.discriminator
@@ -1202,6 +1357,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break
             // UNBAN
         case "unban":
+        case "desbanir":
             if (checkAdmin(message)){
                 var whoUnBanned = message.author.username + " #" + message.author.discriminator
                 var toUnban = args.join(" ")
@@ -1233,6 +1389,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // UNBANID
         case "unbanid":
+        case "desbanirid":
             if(checkAdmin(message)){
                 var whoUnBanned = message.author.username + " #" + message.author.discriminator
                 let toUnban = args.join(" ")
@@ -1266,6 +1423,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
             // APPEAL
         case "appeal":
+        case "apelo":
+        case "apelar":
             if (!checkAdmin()){
                 if (banned[message.author.username]){
                     let apeal = args.join(" ")
@@ -1348,7 +1507,6 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         break;
     }
 
-
 });
 
 client.on("error", (e) => {
@@ -1380,5 +1538,5 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     })
 })
 
-client.login(process.env.BOT_TOKEN)
+client.login(token.token)
 process.on('unhandledRejection', err => console.error(`Uncaught Promise Rejection: \n${err.stack}`));
