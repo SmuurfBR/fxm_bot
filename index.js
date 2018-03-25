@@ -8,7 +8,7 @@ const shortener = require("tinyurl")
 const snekfetch = require("snekfetch")
 const { gitCommitPush } = require("git-commit-push-via-github-api")
 
-
+const gitToken = process.env.GITHUB_TOKEN
 
 var preMessages = require("./Database/mensagens.json")
 var config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
@@ -61,101 +61,114 @@ var d1f = "https://youtu.be/gW8FbixbI-s"
 
 // ==================================================================================================
 
-
-
-function giveawaysSave(){
-    fs.writeFile("./Database/sorteios.json", JSON.stringify(giveaways), (err) => {
-        if (err) console.error(err)
-      });    
-    gitCommitPush({
+async function commit(){
+    console.log("Starting GitHub commits\n---------------------------")
+    
+    await gitCommitPush({
         owner: "MarcVFX",
         repo: "fxm_bot",
-        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
+        token: gitToken,
 
         files : [{ path: "Database/sorteios.json", content: fs.readFileSync("./Database/sorteios.json", "utf-8")}],
         fullyQualifiedRef: "heads/master",
         commitMessage: "Automatic giveawaysSave() JSON commit"
     }).then(res =>{
-        console.log("succes", res)
+        console.log("Giveaways saved\n---------------------------")
     }).catch(err =>{
         console.error(err)
     })
+
+    await gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: gitToken,
+
+        files : [{ path: "Database/banidos.json", content: fs.readFileSync("./Database/banidos.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic bannedSave() JSON commit"
+    }).then(res =>{
+        console.log("Bans saved\n---------------------------")
+    }).catch(err =>{
+        console.error(err)
+    })
+
+    await gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: gitToken,
+
+        files : [{ path: "Database/avisados.json", content: fs.readFileSync("./Database/avisados.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic warndsSave() JSON commit"
+    }).then(res =>{
+        console.log("Warns saved\n---------------------------")
+    }).catch(err =>{
+        console.error(err)
+    })
+
+    await gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: gitToken,
+
+        files : [{ path: "Database/changelog.json", content: fs.readFileSync("./Database/changelog.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic changelogSave() JSON commit"
+    }).then(res =>{
+        console.log("Changelog saved\n---------------------------")
+    }).catch(err =>{
+        console.error(err)
+    })
+
+    await gitCommitPush({
+        owner: "MarcVFX",
+        repo: "fxm_bot",
+        token: gitToken,
+
+        files : [{ path: "Database/profiles.json", content: fs.readFileSync("./Database/profiles.json", "utf-8")}],
+        fullyQualifiedRef: "heads/master",
+        commitMessage: "Automatic profileSave() JSON commit"
+    }).then(res =>{
+        console.log("Profiles saved\n---------------------------")
+    }).catch(err =>{
+        console.error(err)
+    })
+    console("Finished GitHub commits")
+}
+
+function giveawaysSave(){
+    fs.writeFile("./Database/sorteios.json", JSON.stringify(giveaways), (err) => {
+        if (err) console.error(err)
+      });    
+    
 }
 
 function bannedSave(){
     fs.writeFile("./Database/banidos.json", JSON.stringify(banned), (err) => {
         if (err) console.error(err)
       });
-    gitCommitPush({
-        owner: "MarcVFX",
-        repo: "fxm_bot",
-        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
-
-        files : [{ path: "Database/banidos.json", content: fs.readFileSync("./Database/banidos.json", "utf-8")}],
-        fullyQualifiedRef: "heads/master",
-        commitMessage: "Automatic bannedSave() JSON commit"
-    }).then(res =>{
-        console.log("succes", res)
-    }).catch(err =>{
-        console.error(err)
-    })
+    
 }
 
 function warnedsSave(){
     fs.writeFile("./Database/avisados.json", JSON.stringify(warneds), (err) => {
         if (err) console.error(err)
       });
-    gitCommitPush({
-        owner: "MarcVFX",
-        repo: "fxm_bot",
-        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
-
-        files : [{ path: "Database/avisados.json", content: fs.readFileSync("./Database/avisados.json", "utf-8")}],
-        fullyQualifiedRef: "heads/master",
-        commitMessage: "Automatic warndsSave() JSON commit"
-    }).then(res =>{
-        console.log("succes", res)
-    }).catch(err =>{
-        console.error(err)
-    })
+    
 }
 
 function changelogSave(){
     fs.writeFile("./Database/changelog.json", JSON.stringify(changelog), (err) => {
         if (err) console.error(err)
     });
-    gitCommitPush({
-        owner: "MarcVFX",
-        repo: "fxm_bot",
-        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
-
-        files : [{ path: "Database/changelog.json", content: fs.readFileSync("./Database/changelog.json", "utf-8")}],
-        fullyQualifiedRef: "heads/master",
-        commitMessage: "Automatic changelogSave() JSON commit"
-    }).then(res =>{
-        console.log("succes", res)
-    }).catch(err =>{
-        console.error(err)
-    })
+    
 }
 
 function profileSave(){
     fs.writeFile("./Database/profiles.json", JSON.stringify(profiles), (err) => {
         if (err) console.error(err)
     });
-    gitCommitPush({
-        owner: "MarcVFX",
-        repo: "fxm_bot",
-        token: "400a7f21c1d5e00c99cbadee7ec642e95aa2e001",
-
-        files : [{ path: "Database/profiles.json", content: fs.readFileSync("./Database/profiles.json", "utf-8")}],
-        fullyQualifiedRef: "heads/master",
-        commitMessage: "Automatic profileSave() JSON commit"
-    }).then(res =>{
-        console.log("succes", res)
-    }).catch(err =>{
-        console.error(err)
-    })
+    
 }
 function checkAdmin(message,send){
     if (send == null || undefined) send = true
@@ -381,6 +394,7 @@ client.on("messageReactionAdd", (reaction, user) =>{
         if(giveaways[authorId].max == giveaways[authorId].members){
             reaction.message.channel.send("Este sorteio atingiu o máximo de membros permitidos").then(msg =>{
                 setTimeout(() =>{
+                    reaction.message.clearReactions()
                     msg.delete()
                 }, secsToMilSecs(10))
                 
@@ -397,13 +411,13 @@ client.on("messageReactionAdd", (reaction, user) =>{
                 })
                 return;
             }
-        
+        })
         var giveUserId = user.id
-        giveaways[authorId].membersId = {giveUserId : user.Id}
+        giveaways[authorId].membersId[giveUserId] = giveUserId
         giveaways[authorId].members++
         giveawaysSave()
-        reaction.message.edit("Participantes: "+ giveaways[authorId].members, {embed: giveaways[authorId].embed})
-        })
+        reaction.message.edit(giveaways[authorId].author + " | Participantes: "+ giveaways[authorId].members, {embed: giveaways[authorId].embed})
+        
         
     }
 })
@@ -569,8 +583,8 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         .setColor(hexVerde)
         .setTitle(title)
         .setDescription(description)
-        .addField("Número mínimo de participantes", min,true)
-        .addField("Número máximo de participantes", max,true)
+        .addField("Número mínimo de participantes |", min,true)
+        .addField(" Número máximo de participantes", max,true)
         .setFooter("O sorteio será realizado em:")
         .setTimestamp(giveawayDate)
     giveaways[msg.author.id] = {
@@ -587,6 +601,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         channel : msg.channel.id,
         author : msg.author.id
     }
+
     save()
     async function save(){
         await giveawaysSave()
@@ -960,6 +975,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
             // ADMINISTRAÇÃO
             // ======================================================================================
         case "giveaway":
+        case "give":
         case "sorteio":
         case "sortear":
                 if(checkAdmin(message)){
@@ -1218,7 +1234,6 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
         case "unmute":
         case "desmutar":
         case "descalar":
-        case "desilenciar":
             if (checkMod(message)){
                 
 
@@ -1535,6 +1550,9 @@ var a = schedule.scheduleJob('0 0 * * *', function(){
     let ids = Object.keys(profiles).forEach(id =>{
         updateProfile(id)
     })
+})
+var b = schedule.scheduleJob('0 23 * * *', function(){
+    commit()
 })
 
 client.login(process.env.BOT_TOKEN)
