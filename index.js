@@ -133,7 +133,7 @@ async function commit(){
     }).catch(err =>{
         console.error(err)
     })
-    console("Finished GitHub commits")
+    console.log("Finished GitHub commits")
 }
 
 function giveawaysSave(){
