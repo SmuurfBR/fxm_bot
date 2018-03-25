@@ -938,7 +938,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                         if (!changelog[version]) {
                             changelog[version] = {
                                 short: dividedDesc[0],
-                                long: dividedDesc[1],
+                                long: dividedDesc.slice(dividedDesc[0]).join,
                                 timestamp: new Date()
                             }
                             changelog.versions.unshift(version)
