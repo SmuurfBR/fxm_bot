@@ -916,7 +916,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                     if (checkAdmin(message)){
                         
                         let fullDesc = args.slice(2).join(" ") 
-                        let dividedDesc = fullDesc.split(":")
+                        let dividedDesc = fullDesc.split("><")
                         let version = args[1]
 
                         if (args[1] == undefined){
@@ -938,7 +938,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                         if (!changelog[version]) {
                             changelog[version] = {
                                 short: dividedDesc[0],
-                                long: dividedDesc.slice(dividedDesc[0]).join,
+                                long: dividedDesc[1],
                                 timestamp: new Date()
                             }
                             changelog.versions.unshift(version)
