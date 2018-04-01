@@ -774,7 +774,7 @@ function generateGiveawayEmbed(title,description,min,max,days,msg){
                 message.channel.send("Você precisa especificar o ID do seu canal http://prntscr.com/ift8b1")
                 return
             }
-            id = args[0]
+            var id = args[0]
             var url = "https://www.googleapis.com/youtube/v3/channels?part=snippet%2C%20contentDetails%2C%20brandingSettings%2C%20invideoPromotion%2C%20statistics%2C%20topicDetails&id=" + id + "&key=" + ytApi
             createProfile(url, id, message)
             
